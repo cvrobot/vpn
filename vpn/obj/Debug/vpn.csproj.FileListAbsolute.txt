@@ -1,0 +1,9 @@
+C:\Users\lanbo\Desktop\vpn\vpn\bin\Debug\vpn.exe.config
+C:\Users\lanbo\Desktop\vpn\vpn\bin\Debug\vpn.exe
+C:\Users\lanbo\Desktop\vpn\vpn\bin\Debug\vpn.pdb
+C:\Users\lanbo\Desktop\vpn\vpn\obj\Debug\vpn.Form1.resources
+C:\Users\lanbo\Desktop\vpn\vpn\obj\Debug\vpn.Properties.Resources.resources
+C:\Users\lanbo\Desktop\vpn\vpn\obj\Debug\vpn.csproj.GenerateResource.Cache
+C:\Users\lanbo\Desktop\vpn\vpn\obj\Debug\vpn.exe
+C:\Users\lanbo\Desktop\vpn\vpn\obj\Debug\vpn.pdb
+C:\Users\lanbo\Desktop\vpn\vpn\obj\Debug\vpn.csprojResolveAssemblyReference.cache

@@ -1,0 +1,8 @@
+C:\Users\lanbo\Desktop\vpn\vpn\bin\Release\vpn.exe.config
+C:\Users\lanbo\Desktop\vpn\vpn\bin\Release\vpn.exe
+C:\Users\lanbo\Desktop\vpn\vpn\bin\Release\vpn.pdb
+C:\Users\lanbo\Desktop\vpn\vpn\obj\Release\vpn.Form1.resources
+C:\Users\lanbo\Desktop\vpn\vpn\obj\Release\vpn.Properties.Resources.resources
+C:\Users\lanbo\Desktop\vpn\vpn\obj\Release\vpn.csproj.GenerateResource.Cache
+C:\Users\lanbo\Desktop\vpn\vpn\obj\Release\vpn.exe
+C:\Users\lanbo\Desktop\vpn\vpn\obj\Release\vpn.pdb
