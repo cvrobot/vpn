@@ -7,7 +7,7 @@
     <ProjectGuid>{F2B20163-16C8-4322-957D-5A6DD33586D3}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <RootNamespace>vpn</RootNamespace>
-    <AssemblyName>vpn</AssemblyName>
+    <AssemblyName>sysvpn</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

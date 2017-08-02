@@ -60,37 +60,48 @@ namespace vpn
             //System.Security.Principal.WindowsPrincipal principal = new System.Security.Principal.WindowsPrincipal(identity);
             if (button1.Text.StartsWith("Start"))
             {
-                SetConsoleCtrlHandler(null, false);
-                button1.Text = "Stop";
-                p.StartInfo.FileName = "shadowvpn.exe";
-                p.StartInfo.UseShellExecute = false;
-                p.StartInfo.RedirectStandardInput = true;
-                //input = p.StandardInput.
-                p.StartInfo.RedirectStandardOutput = true;
-                p.StartInfo.RedirectStandardError = true;
-                p.StartInfo.CreateNoWindow = true;
-                p.StartInfo.Arguments = "-c client.conf";
-                p.StartInfo.Verb = "runas";
-                p.Start();
+                //button1.Text = "Stop";
+                button1.Enabled = false;
+                startProcess();
+                timer1.Start();
+
             }
             else {
-
-                button1.Text = "Start";
-                //p.StandardInput.WriteLine("\x3");
-                //Thread.Sleep(50);
-                //p.StandardInput.Close();
-                //GenerateConsoleCtrlEvent(0,0);
-                //p.CloseMainWindow();
-                //SendMessage(p.MainWindowHandle, WM_CHAR, 0x03, 1);
-                //TerminateProcess(p.Handle, 0);
-                //p.Dispose();
-                //SendKeys.SendWait("^(c)");
-                //p.Kill();
+                button1.Enabled = false;
                 SendControlC(p.Id);
-                //p.Dispose();
                 p.Close();
+                button1.Text = "Start";
+                button1.Enabled = true;
             }
   
+        }
+
+        void startProcess()
+        {
+            SetConsoleCtrlHandler(null, false);
+
+            p.StartInfo.FileName = "shadowvpn.exe";
+            p.StartInfo.UseShellExecute = false;
+            p.StartInfo.RedirectStandardInput = true;
+            p.StartInfo.RedirectStandardOutput = true;
+            p.StartInfo.RedirectStandardError = true;
+            p.StartInfo.CreateNoWindow = true;
+            p.StartInfo.Arguments = "-c client.conf";
+            p.StartInfo.Verb = "runas";
+            p.Exited += P_Exited;
+            p.Start();
+        }
+
+        private void P_Exited(object sender, EventArgs e)
+        {
+            if( button1.Text.StartsWith("Start"))//try starting
+            {
+                startProcess();//restart again
+            }
+            else
+            {
+                //normal exit
+            }
         }
 
         void SendControlC(int pid)
@@ -102,5 +113,29 @@ namespace vpn
             FreeConsole();
         }
 
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            if(p.HasExited)
+            {
+                //startProcess();
+            }
+            else
+            {
+                button1.Text = "Stop";
+                button1.Enabled = true;
+                timer1.Stop();
+            }
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            try
+            {
+                if (button1.Text.StartsWith("Stop"))//already start
+                    SendControlC(p.Id);
+            }
+            catch {
+            }
+        }
     }
 }
