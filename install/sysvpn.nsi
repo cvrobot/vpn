@@ -5,12 +5,20 @@
 !define PRODUCT_VERSION "1.0"
 !define PRODUCT_PUBLISHER "sysvpn, Inc."
 !define PRODUCT_WEB_SITE "http://www.sysvpn.com"
-!define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\shadowvpn.exe"
+!define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\sysvpn.exe"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
 
 ; MUI 1.67 compatible ------
 !include "MUI.nsh"
+
+; Install for all users. MultiUser.nsh also calls SetShellVarContext to point
+; the installer to global directories (e.g. Start menu, desktop, etc.)
+!define MULTIUSER_EXECUTIONLEVEL Admin
+!include "MultiUser.nsh"
+
+; x64.nsh for architecture detection
+!include "x64.nsh"
 
 ; MUI Settings
 !define MUI_ABORTWARNING
@@ -24,7 +32,7 @@
 ; Instfiles page
 !insertmacro MUI_PAGE_INSTFILES
 ; Finish page
-!define MUI_FINISHPAGE_RUN "$INSTDIR\tap-windows-9.21.0.exe"
+!define MUI_FINISHPAGE_RUN "$INSTDIR\sysvpn.exe"
 !insertmacro MUI_PAGE_FINISH
 
 ; Uninstaller pages
@@ -45,18 +53,36 @@ ShowUnInstDetails show
 Section "MainSection" SEC01
   SetOutPath "$INSTDIR"
   SetOverwrite try
-  File "..\vpn\bin\Release\client.conf"
-  File "..\vpn\bin\Release\client_down.bat"
-  File "..\vpn\bin\Release\client_up.bat"
-  File "..\vpn\bin\Release\shadowvpn.exe"
-  File "..\vpn\bin\Release\tap-windows-9.21.0.exe"
-  File "..\vpn\bin\Release\sysvpn.exe"
+  File "..\vpn\bin\x64\Release\sysvpn.exe"
+  File "..\bins\client.conf"
+  File "..\bins\client_down.bat"
+  File "..\bins\client_up.bat"
+  File "..\bins\shadowvpn.exe"
   CreateDirectory "$SMPROGRAMS\sysvpn"
   CreateShortCut "$SMPROGRAMS\sysvpn\sysvpn.lnk" "$INSTDIR\sysvpn.exe"
   CreateShortCut "$DESKTOP\sysvpn.lnk" "$INSTDIR\sysvpn.exe"
 SectionEnd
 
+Section "TunSection" SEC02
+  SetOutPath "$TEMP"
+  SetOverwrite on
+  File /oname=tap-windows.exe "..\bins\tap-windows-9.21.0.exe"
+  DetailPrint "Installing TAP (may need confirmation)..."
+  nsExec::ExecToLog /OEM '"$TEMP\tap-windows.exe" /S /SELECT_UTILITIES=1'
+  Pop $R0 # return value/error/timeout
+  #exec "$TEMP\tap-windows.exe"
+  Delete "$TEMP\tap-windows.exe"
+  WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "tap" "installed"
+SectionEnd
+
+Function .onInit
+  ${If} ${RunningX64}
+    SetRegView 64
+  ${EndIf}
+FunctionEnd
+
 Section -AdditionalIcons
+  SetOutPath $INSTDIR
   WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
   CreateShortCut "$SMPROGRAMS\sysvpn\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
   CreateShortCut "$SMPROGRAMS\sysvpn\Uninstall.lnk" "$INSTDIR\uninst.exe"
@@ -64,10 +90,10 @@ SectionEnd
 
 Section -Post
   WriteUninstaller "$INSTDIR\uninst.exe"
-  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\shadowvpn.exe"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
+  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\sysvpn.exe"
+  WriteRegStr HKLM "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\shadowvpn.exe"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\sysvpn.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
@@ -82,13 +108,27 @@ FunctionEnd
 Function un.onInit
   MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 "你确实要完全移除 $(^Name) ，其及所有的组件？" IDYES +2
   Abort
+
+  ${If} ${RunningX64}
+    SetRegView 64
+  ${EndIf}
 FunctionEnd
 
 Section Uninstall
+  ReadRegStr $R0 HKLM "${PRODUCT_UNINST_KEY}" "tap"
+  ${If} $R0 == "installed"
+    ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\TAP-Windows" "UninstallString"
+    ${If} $R0 != ""
+      DetailPrint "Uninstalling TAP..."
+      #exec $R0
+      nsExec::ExecToLog /OEM '"$R0" /S'
+      Pop $R0 # return value/error/timeout
+    ${EndIf}
+  ${EndIf}
+
   Delete "$INSTDIR\${PRODUCT_NAME}.url"
   Delete "$INSTDIR\uninst.exe"
   Delete "$INSTDIR\sysvpn.exe"
-  Delete "$INSTDIR\tap-windows-9.21.0.exe"
   Delete "$INSTDIR\shadowvpn.exe"
   Delete "$INSTDIR\client_up.bat"
   Delete "$INSTDIR\client_down.bat"
