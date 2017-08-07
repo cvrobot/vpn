@@ -6,3 +6,12 @@ C:\Users\lanbo\Desktop\vpn\vpn\obj\Release\vpn.Properties.Resources.resources
 C:\Users\lanbo\Desktop\vpn\vpn\obj\Release\vpn.csproj.GenerateResource.Cache
 C:\Users\lanbo\Desktop\vpn\vpn\obj\Release\vpn.exe
 C:\Users\lanbo\Desktop\vpn\vpn\obj\Release\vpn.pdb
+D:\work\3man\vpn\vpn\vpn\bin\Release\sysvpn.exe.config
+D:\work\3man\vpn\vpn\vpn\bin\Release\sysvpn.exe
+D:\work\3man\vpn\vpn\vpn\bin\Release\sysvpn.pdb
+D:\work\3man\vpn\vpn\vpn\obj\Release\vpn.csprojResolveAssemblyReference.cache
+D:\work\3man\vpn\vpn\vpn\obj\Release\vpn.Form1.resources
+D:\work\3man\vpn\vpn\vpn\obj\Release\vpn.Properties.Resources.resources
+D:\work\3man\vpn\vpn\vpn\obj\Release\vpn.csproj.GenerateResource.Cache
+D:\work\3man\vpn\vpn\vpn\obj\Release\sysvpn.exe
+D:\work\3man\vpn\vpn\vpn\obj\Release\sysvpn.pdb
