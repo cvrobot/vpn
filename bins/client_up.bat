@@ -10,7 +10,7 @@ SET remote_tun_ip=10.7.0.1
       ::#server virtual net IP
 SET dns_server=8.8.8.8
           ::#set dns
-SET orig_intf="WLAN 2"
+REM SET orig_intf="WLAN 2"
             ::#actual interface to connect to network
  
 REM exclude remote server in routing table
@@ -18,8 +18,9 @@ for /F "tokens=3" %%* in ('route print ^| findstr "\<0.0.0.0\>"') do set "orig_g
 route add %server% %orig_gw% metric 5 > NUL
  
 REM configure IP address and MTU of VPN interface
-netsh interface ip set interface %orig_intf% ignoredefaultroutes=enabled > NUL
-netsh interface ip set address name="%intf%" static %tunip% 255.255.255.0 > NUL
+REM netsh interface ip set interface %orig_intf% ignoredefaultroutes=enabled > NUL
+netsh interface ip set address name="%intf%" static %tunip% 255.255.255.0 %remote_tun_ip% gwmetric=1 > NUL
+REM netsh interface ip set interface "%intf%" metric=1 > NUL
 netsh interface ipv4 set subinterface "%intf%" mtu=%mtu% > NUL
  
 REM change routing table
@@ -27,16 +28,16 @@ ECHO changing default route
 REM checking if winxp
 ver | find "5.1" > NUL
 if %ERRORLEVEL%==0 (
-    route add 128.0.0.0 mask 128.0.0.0 %remote_tun_ip% metric 6 > NUL
-    route add 0.0.0.0 mask 128.0.0.0 %remote_tun_ip% metric 6 > NUL
+    route add 128.0.0.0 mask 128.0.0.0 %remote_tun_ip% metric 1 > NUL
+    route add 0.0.0.0 mask 128.0.0.0 %remote_tun_ip% metric 1 > NUL
 ) else (
-    netsh interface ipv4 add route 128.0.0.0/1 "%intf%" %remote_tun_ip% metric=6 > NUL
-    netsh interface ipv4 add route 0.0.0.0/1 "%intf%" %remote_tun_ip% metric=6 > NUL
+    netsh interface ipv4 add route 128.0.0.0/1 "%intf%" %remote_tun_ip% metric=1 > NUL
+REM    netsh interface ipv4 add route 0.0.0.0/1 "%intf%" %remote_tun_ip% metric=1 > NUL
 )
 ECHO default route changed to %remote_tun_ip%
  
 REM change dns server
 netsh interface ip set dns name="%intf%" static %dns_server% > NUL
-netsh interface ip set dns name="%orig_intf%" static %dns_server% > NUL
+REM netsh interface ip set dns name="%orig_intf%" static %dns_server% > NUL
  
 ECHO %0 done
