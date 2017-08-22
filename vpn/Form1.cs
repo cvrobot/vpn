@@ -11,14 +11,30 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.IO;
 using System.Threading;
+using System.Net;
+using System.Net.Sockets;
 
 namespace vpn
 {
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct vpn_cmd_t{
+        int type;//1:login,2:logout,3:exit
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 10)]
+        byte[] uid;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 20)]
+        byte[] pwd;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 8)]
+        byte[] token;
+        UInt32 client_ip;
+        int rsp;//OK if it is same as type
+    };
+
     public partial class Form1 : Form
     {
         Process p;
         StreamWriter input;
-
+        Thread th;
+        bool conn = false;
         const int WM_CHAR = 0x0102;
         [DllImport("kernel32.dll")]
         static extern bool GenerateConsoleCtrlEvent(int dwCtrlEvent, int dwProcessGroupId);
@@ -48,10 +64,46 @@ namespace vpn
         static extern bool AttachConsole(int dwProcessId);
         [DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
         static extern bool FreeConsole();
+
+
         public Form1()
         {
             p = new Process();
+            th = new Thread(new ThreadStart(threadConn));
+            vpn_cmd_t cmd = new vpn_cmd_t();
+            MessageBox.Show(Marshal.SizeOf(cmd).ToString()); 
             InitializeComponent();
+        }
+
+        private void threadConn()
+        {
+            Socket socket = new Socket(SocketType.Dgram, ProtocolType.Udp);
+            IPEndPoint ipep = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 55151);
+            EndPoint Remote = (EndPoint)ipep;
+            byte[] buffer = new byte[1024];
+            List<Socket> socketList = new List<Socket>();
+            socketList.Add(socket);
+            vpn_cmd_t cmd = new vpn_cmd_t();
+            //cmd.token =
+            //UdpClient
+            while (button1.Text.StartsWith("Start")){
+                Thread.Sleep(100);
+                socketList.Clear();
+                socketList.Add(socket);
+                //cmd.ToString();
+                socket.SendTo(Encoding.ASCII.GetBytes(textBox1.Text), Remote);
+
+                Socket.Select(socketList, null, null, 500);
+                if(socketList.Count > 0)
+                {
+                    ((Socket)socketList[0]).Receive(buffer);
+                }
+                if (conn == true)
+                {
+                    button1.Text = "Stop";
+                    button1.Enabled = true;
+                }
+            }
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -64,6 +116,7 @@ namespace vpn
                 button1.Enabled = false;
                 startProcess();
                 timer1.Start();
+                th.Start();
 
             }
             else {
