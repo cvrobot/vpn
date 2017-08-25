@@ -1,3 +1,9 @@
+using System;
+using System.Globalization;
+using System.IO;
+using System.Text;
+using System.Security.Cryptography;
+
 namespace Aes
 {
   class AesHelp
@@ -13,8 +19,11 @@ namespace Aes
         byte[] keyBytes = Encoding.UTF8.GetBytes(key.Substring(0, 32));
         using (AesCryptoServiceProvider aesAlg = new AesCryptoServiceProvider())
         {
-            aesAlg.Key = keyBytes;
-            aesAlg.IV = AES_IV;
+            byte[] _key;
+            byte[] _iv;
+            GeneralKeyIV(key, out _key, out _iv);
+            aesAlg.Key = _key;
+            aesAlg.IV = _iv;
 
             ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
             using (MemoryStream msEncrypt = new MemoryStream())
@@ -50,8 +59,11 @@ namespace Aes
         byte[] keyBytes = Encoding.UTF8.GetBytes(key.Substring(0, 32)); 
         using (AesCryptoServiceProvider aesAlg = new AesCryptoServiceProvider())
         {
-            aesAlg.Key = keyBytes;
-            aesAlg.IV = AES_IV;
+            byte[] _key;
+            byte[] _iv;
+            GeneralKeyIV(key, out _key, out _iv);
+            aesAlg.Key = _key;
+            aesAlg.IV = _iv;
 
             ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
             using (MemoryStream msEncrypt = new MemoryStream(inputBytes))
@@ -65,6 +77,19 @@ namespace Aes
                 }
             }
         }           
+    }
+
+    public static void GeneralKeyIV(string keyStr, out byte[] key, out byte[] iv)
+    {
+        byte[] bytes = Encoding.UTF8.GetBytes(keyStr);
+        byte[] _key = SHA1.Create().ComputeHash(bytes);
+        key = new byte[8];
+        iv = new byte[8];
+        for (int i = 0; i < 8; i++)
+        {
+            iv[i] = _key[i];
+            key[i] = _key[i];
+        }
     }
 
   }
