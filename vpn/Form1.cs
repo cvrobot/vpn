@@ -13,59 +13,12 @@ using System.IO;
 using System.Threading;
 using System.Net;
 using System.Net.Sockets;
+using Converter
+using Registry
+using Aes
 
 namespace vpn
 {
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct vpn_cmd_t{
-        int type;//1:login,2:logout,3:exit
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 10)]
-        byte[] uid;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 20)]
-        byte[] pwd;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 8)]
-        byte[] token;
-        UInt32 client_ip;
-        int rsp;//OK if it is same as type
-    };
-
-    class Converter
-   {
-       //Structure转为Byte数组，实现了序列化
-       public static Byte[] StructToBytes(Object structure)
-       {
-           Int32 size = Marshal.SizeOf(structure);
-           Console.WriteLine(size);
-           IntPtr buffer = Marshal.AllocHGlobal(size);
-           try
-           {
-               Marshal.StructureToPtr(structure, buffer, false);
-               Byte[] bytes = new Byte[size];
-               Marshal.Copy(buffer, bytes, 0, size);
-               return bytes;
-           }
-           finally
-           {
-               Marshal.FreeHGlobal(buffer);
-           }
-       }
-       //Byte数组转为Structure，实现了反序列化
-       public static Object BytesToStruct(Byte[] bytes, Type strcutType)
-       {
-           Int32 size = Marshal.SizeOf(strcutType);
-           IntPtr buffer = Marshal.AllocHGlobal(size);
-           try
-           {
-               Marshal.Copy(bytes, 0, buffer, size);
-               return Marshal.PtrToStructure(buffer, strcutType);
-           }
-           finally
-           {
-               Marshal.FreeHGlobal(buffer);
-           }
-       }
-   }
-
     public partial class Form1 : Form
     {
         Process p;
@@ -125,7 +78,7 @@ namespace vpn
             cmd.pwd = new byte[20];
             cmd.token = new byte[8];
             Array.Copy(Encoding.ASCII.GetBytes(textBox1.Text), cmd.token, 8);
-            byte[] buffer = Converter.StructToBytes(cmd);
+            byte[] buffer = ConverterHelper.StructToBytes<vpn_cmd_t>(cmd);
 
             while (button1.Text.StartsWith("Start")){
                 Thread.Sleep(100);
@@ -139,9 +92,9 @@ namespace vpn
                 if(socketList.Count > 0)
                 {
                     ((Socket)socketList[0]).Receive(buffer);
-                    cmd = (vpn_cmd_t)Converter.BytesToStruct(buffer, typeof(vpn_cmd_t));
+                    cmd = (vpn_cmd_t)ConverterHelper.BytesToStruct<vpn_cmd_t>(buffer);
                     if(cmd.rsp != 0){
-                        MessageBox.Show(cmd.type.ToString() + cmd.rsp.ToSing());
+                        MessageBox.Show(cmd.type.ToString() + cmd.rsp.ToString());
                         if(cmd.rsp == 3){
                             conn = true;
                         }
@@ -241,4 +194,17 @@ namespace vpn
             }
         }
     }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct vpn_cmd_t{
+        public int type;//1:login,2:logout,3:exit
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 10)]
+        public byte[] uid;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
+        public byte[] pwd;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
+        public byte[] token;
+        UInt32 client_ip;
+        public int rsp;//OK if it is same as type
+    };
 }
