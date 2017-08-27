@@ -139,7 +139,7 @@ namespace sysvpn
         {
             byte[] buffer;
             vpn_cmd_t cmd = new vpn_cmd_t();
-            int len = textBox1.Text.Length>8? 8:textBox1.Text.Length;
+            int len = (textBox1.Text.Length/2)>8? 8:textBox1.Text.Length/2;
             cmd.type = cmd_type;
             cmd.rsp = 0;
             cmd.uid = new byte[10];
@@ -343,14 +343,64 @@ namespace sysvpn
             string check = Convert.ToString(checkBox1.Checked);
             rh.SetRegistryData(Registry.LocalMachine, sysvpn, checkname, check);
         }
-
+        /*
         private void textBox1_KeyDown(object sender, KeyEventArgs e)
         {
-            if(e.KeyCode == Keys.Enter)
-                vpn_start();
+            if ((e.KeyCode >= Keys.D0 && e.KeyCode <= Keys.D9) ||
+                (e.KeyCode >= Keys.A && e.KeyCode <= Keys.Z) ||
+                (e.KeyCode == Keys.Back) ||
+                (e.KeyCode == Keys.Enter))
+            {
+                if (e.KeyCode == Keys.Enter)
+                    vpn_start();
+                
+            }else
+                e.Handled = true;
+        }*/
+
+        private void textBox1_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if ((Char.IsNumber(e.KeyChar)) ||
+                (e.KeyChar >= 'A' && e.KeyChar <= 'F') ||
+                (e.KeyChar >= 'a' && e.KeyChar <= 'f') ||
+                (e.KeyChar == (char)Keys.Back) ||
+                (e.KeyChar == (char)Keys.Enter))
+            {
+                if (e.KeyChar == (char)Keys.Enter)
+                    vpn_start();
+                //e.Handled = false;
+            }
+            else if (e.KeyChar == (char)22)
+            {
+                try
+                {
+                    strToByte(Clipboard.GetText());//检查是否16进制数字
+                    //Convert.ToInt64(Clipboard.GetText());  
+                    Clipboard.SetText(Clipboard.GetText().Trim()); //去空格
+                }
+                catch (Exception)
+                {
+                    e.Handled = true;
+                    MessageBox.Show("只能输入数字及A~F");
+                }
+            }
+            else
+            {
+                e.Handled = true;
+                MessageBox.Show("只能输入数字及A~F");
+            }
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+            if (textBox1.Text.Length == 16)
+                button1.Enabled = true;
+            else
+                button1.Enabled = false;
+
         }
     }
-
+  
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct vpn_cmd_t{
         public int type;//1:login,2:logout,3:exit
