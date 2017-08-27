@@ -271,17 +271,20 @@ namespace sysvpn
             }
         }
 
-        void SendControlC(int pid)
+        void SendControlC(int pid = 0)
         {
             int cmd_type = 4;//exit
             byte[] buffer = prepare_data(cmd_type, textBox1.Text);
             socket.SendTo(buffer, Remote);
-            AttachConsole(pid); // attach to process console
-            SetConsoleCtrlHandler(null, true); // disable Control+C handling for our app
-            GenerateConsoleCtrlEvent(0, 0); // generate Control+C event
-            p.WaitForExit(2000);
-            deamon_status = false;
-            FreeConsole();
+            if (pid != 0)
+            {
+                AttachConsole(pid); // attach to process console
+                SetConsoleCtrlHandler(null, true); // disable Control+C handling for our app
+                GenerateConsoleCtrlEvent(0, 0); // generate Control+C event
+                p.WaitForExit(2000);
+                deamon_status = false;
+                FreeConsole();
+            }
         }
 
         private void timer1_Tick(object sender, EventArgs e)
@@ -302,8 +305,10 @@ namespace sysvpn
         {
             try
             {
-                //if (button1.Text.StartsWith("Stop"))//already start
+                if (button1.Text.StartsWith("Stop"))//already start
                     SendControlC(p.Id);
+                else
+                    SendControlC();
             }
             catch {
             }
