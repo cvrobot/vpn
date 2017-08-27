@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Win32;
 
-namespace Registry
+namespace RegistryTag
 {
     class RegistryHelper
     {
@@ -50,7 +50,32 @@ namespace Registry
                 if(aimKey == name)
                     myKey.DeleteSubKeyTree(name); 
             } 
-        } 
+        }
+
+        /// <summary>
+        /// 判断指定注册表项的key是否存在
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public bool IsRegistryKeyExist(RegistryKey root, string subkey, string name)
+        {
+            bool _exit = false;
+            string[] subkeyNames;
+            RegistryKey myKey = root.OpenSubKey(subkey, true);
+            if (myKey == null)
+                return _exit;
+            subkeyNames = myKey.GetValueNames();
+            foreach (string keyName in subkeyNames)
+            {
+                if (keyName == name)
+                {
+                    _exit = true;
+                    return _exit;
+                }
+            }
+
+            return _exit;
+        }
 
         /// <summary>
         /// 判断指定注册表项是否存在
@@ -62,6 +87,8 @@ namespace Registry
             bool _exit = false; 
             string[] subkeyNames; 
             RegistryKey myKey = root.OpenSubKey(subkey, true);
+            if (myKey == null)
+                return _exit;
             subkeyNames = myKey.GetSubKeyNames(); 
             foreach(string keyName in subkeyNames) 
             { 

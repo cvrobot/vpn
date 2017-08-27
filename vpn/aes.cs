@@ -14,9 +14,9 @@ namespace Aes
     /// <param name="input">明文字符串</param>  
     /// <param name="key">密钥</param>  
     /// <returns>字符串</returns>  
-    public static string EncryptByAES(string input, string key)
+    public string EncryptByAES(string input, string key)
     {
-        byte[] keyBytes = Encoding.UTF8.GetBytes(key.Substring(0, 32));
+        byte[] keyBytes = Encoding.UTF8.GetBytes(key.Substring(0, key.Length));
         using (AesCryptoServiceProvider aesAlg = new AesCryptoServiceProvider())
         {
             byte[] _key;
@@ -47,7 +47,7 @@ namespace Aes
     /// <param name="input">密文字节数组</param>  
     /// <param name="key">密钥</param>  
     /// <returns>返回解密后的字符串</returns>  
-    public static string DecryptByAES(string input, string key)
+    public string DecryptByAES(string input, string key)
     {
         //byte[] inputBytes = Convert.FromBase64String(input); //Encoding.UTF8.GetBytes(input);
         string[] sInput = input.Split("-".ToCharArray());
@@ -56,7 +56,7 @@ namespace Aes
         {
             inputBytes[i] = byte.Parse(sInput[i], NumberStyles.HexNumber);
         }
-        byte[] keyBytes = Encoding.UTF8.GetBytes(key.Substring(0, 32)); 
+        byte[] keyBytes = Encoding.UTF8.GetBytes(key.Substring(0, key.Length)); 
         using (AesCryptoServiceProvider aesAlg = new AesCryptoServiceProvider())
         {
             byte[] _key;
@@ -79,16 +79,17 @@ namespace Aes
         }           
     }
 
-    public static void GeneralKeyIV(string keyStr, out byte[] key, out byte[] iv)
+    public void GeneralKeyIV(string keyStr, out byte[] key, out byte[] iv)
     {
         byte[] bytes = Encoding.UTF8.GetBytes(keyStr);
         byte[] _key = SHA1.Create().ComputeHash(bytes);
-        key = new byte[8];
-        iv = new byte[8];
-        for (int i = 0; i < 8; i++)
+        key = new byte[32];
+        iv = new byte[16];
+        for (int i = 0; i < 16; i++)
         {
-            iv[i] = _key[i];
-            key[i] = _key[i];
+            key[i*2] = _key[(i*2)%_key.Length];
+            key[i*2+1] = _key[(i*2 +1) % _key.Length];
+            iv[i] = _key[i%_key.Length];
         }
     }
 
