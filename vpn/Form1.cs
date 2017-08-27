@@ -13,19 +13,28 @@ using System.IO;
 using System.Threading;
 using System.Net;
 using System.Net.Sockets;
-using Converter
-using Registry
-using Aes
-
-namespace vpn
+using Microsoft.Win32;
+using Converter;
+using RegistryTag;
+using Aes;
+//计算机\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\sysvpn
+namespace sysvpn
 {
     public partial class Form1 : Form
     {
         Process p;
-        StreamWriter input;
         Thread th;
-        bool conn = false;
+        RegistryHelper rh;
+        AesHelp ah;
+        bool deamon_status = false;
+        bool auto_login = false;
+        const string sysvpn = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\sysvpn";
+        const string tagname = "tag";
+        const string checkname = "check";
         const int WM_CHAR = 0x0102;
+        delegate void my_delegate(int conn);
+        my_delegate handle_conn;
+
         [DllImport("kernel32.dll")]
         static extern bool GenerateConsoleCtrlEvent(int dwCtrlEvent, int dwProcessGroupId);
 
@@ -57,17 +66,72 @@ namespace vpn
         public Form1()
         {
             p = new Process();
-            th = new Thread(new ThreadStart(threadConn));
-            vpn_cmd_t cmd = new vpn_cmd_t();
-            MessageBox.Show(Marshal.SizeOf(cmd).ToString()); 
+            rh = new RegistryHelper();
+            ah = new AesHelp();
+            handle_conn = new my_delegate(conn_notify);
+            //vpn_cmd_t cmd = new vpn_cmd_t();
             InitializeComponent();
         }
 
+        private void conn_notify(int conn)
+        {
+            switch (conn) {
+                case -1://request fail
+                    label_status.Text = "request fail";
+                    break;
+                case -2://token fail
+                    label_status.Text = "token not correct";
+                    break;
+                case -3://check conn fail
+                    label_status.Text = "connect fail";
+                    break;
+                case -4://error request
+                    label_status.Text = "request type error";
+                    break;
+                case -5://time out
+                    label_status.Text = "request time out";
+                    break;
+                case 1://login successfull
+                    label_status.Text = "login successfull";
+                    break;
+                case 2://logout successfull
+                    label_status.Text = "logout successfull";
+                    break;
+                case 3://connect successfull
+                    label_status.Text = "connect successfull";
+                    break;
+                case 4://exit successfull
+                    label_status.Text = "exit successfull";
+                    break;
+            }
+            if (conn == 3 )
+            {
+                button1.Text = "Stop";
+                button1.Enabled = true;
+                save_token(conn);
+            }
+            else if (conn == 3 || conn < 0) {
+                button1.Enabled = true;
+            }
+        }
+
+        private Byte[] strToByte(string str)
+        {
+            byte[] bytes = new byte[str.Length / 2];
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                bytes[i] = Convert.ToByte(str.Substring(i * 2, 2), 16);
+            }
+            return bytes;
+        }
         private void threadConn()
         {
             Socket socket = new Socket(SocketType.Dgram, ProtocolType.Udp);
-            IPEndPoint ipep = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 55151);
+
+            IPEndPoint ipep = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 55152);
             EndPoint Remote = (EndPoint)ipep;
+            byte[] buffer;
+            int conn = 0, retry = 10 ;
 
             List<Socket> socketList = new List<Socket>();
             socketList.Add(socket);
@@ -77,75 +141,105 @@ namespace vpn
             cmd.uid = new byte[10];
             cmd.pwd = new byte[20];
             cmd.token = new byte[8];
-            Array.Copy(Encoding.ASCII.GetBytes(textBox1.Text), cmd.token, 8);
-            byte[] buffer = ConverterHelper.StructToBytes<vpn_cmd_t>(cmd);
-
-            while (button1.Text.StartsWith("Start")){
-                Thread.Sleep(100);
+            Array.Copy(strToByte(textBox1.Text), cmd.token, 8);
+            Thread.Sleep(100);
+            while (conn != 3 && conn >= 0){
                 cmd.rsp = 0;
                 socketList.Clear();
                 socketList.Add(socket);
-                //cmd.ToString();
-                socket.SendTo(Encoding.ASCII.GetBytes(textBox1.Text), Remote);
+                buffer = ConverterHelper.StructToBytes<vpn_cmd_t>(cmd);
+                if (retry > 0)
+                    socket.SendTo(buffer, Remote);
 
-                Socket.Select(socketList, null, null, 500);
+                Socket.Select(socketList, null, null, 1000000);
                 if(socketList.Count > 0)
                 {
                     ((Socket)socketList[0]).Receive(buffer);
                     cmd = (vpn_cmd_t)ConverterHelper.BytesToStruct<vpn_cmd_t>(buffer);
                     if(cmd.rsp != 0){
-                        MessageBox.Show(cmd.type.ToString() + cmd.rsp.ToString());
-                        if(cmd.rsp == 3){
-                            conn = true;
+                        if(cmd.rsp == -1)
+                        {
+                            retry--;
+                            Thread.Sleep(500);
+                        }else
+                            conn = cmd.rsp;
+                        if (cmd.type == 1 && cmd.rsp == 1)
+                        {
+                            cmd.type = 3;
+                            Thread.Sleep(500);
                         }
                         cmd.rsp = 0;
                     }
                 }
-                if (conn == true)
+                //    MessageBox.Show(cmd.type.ToString() + cmd.rsp.ToString());
+                if(conn != 0)//if (conn == 3 || conn == -2)
                 {
-                    button1.Text = "Stop";
-                    button1.Enabled = true;
+                    this.Invoke(handle_conn, conn);
+                    //button1.Text = "Stop";
+                    //button1.Enabled = true;
                 }
             }
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        void save_token(int conn)
         {
-            //System.Security.Principal.WindowsIdentity identity = System.Security.Principal.WindowsIdentity.GetCurrent();
-            //System.Security.Principal.WindowsPrincipal principal = new System.Security.Principal.WindowsPrincipal(identity);
+            string token = textBox1.Text;
+            if (auto_login == false && conn == 3)//auto login not set, means token is set by user 
+            {
+                token = ah.EncryptByAES(token, tagname);
+                rh.SetRegistryData(Registry.LocalMachine, sysvpn, tagname, token);
+            }
+        }
+        private void vpn_start()
+        {
             if (button1.Text.StartsWith("Start"))
             {
                 //button1.Text = "Stop";
                 button1.Enabled = false;
-                startProcess();
-                timer1.Start();
-                th.Start();
+                if (deamon_status == false)
+                {
+                    startProcess();
+                }
+
+                //timer1.Start();
+                if (th == null || th.IsAlive == false)
+                {
+                    th = new Thread(new ThreadStart(threadConn));
+                    th.Start();
+                }
 
             }
-            else {
+            else
+            {
                 button1.Enabled = false;
                 SendControlC(p.Id);
                 p.Close();
+                Thread.Sleep(100);
                 button1.Text = "Start";
                 button1.Enabled = true;
             }
-  
+
+        }
+        private void button1_Click(object sender, EventArgs e)
+        {
+            vpn_start();
         }
 
         void startProcess()
         {
             SetConsoleCtrlHandler(null, false);
-
             p.StartInfo.FileName = "shadowvpn.exe";
             p.StartInfo.UseShellExecute = false;
             p.StartInfo.RedirectStandardInput = true;
             p.StartInfo.RedirectStandardOutput = true;
             p.StartInfo.RedirectStandardError = true;
             p.StartInfo.CreateNoWindow = true;
-            p.StartInfo.Arguments = "-c client.conf";
+            p.StartInfo.Arguments = "-c client.conf -v";
             p.StartInfo.Verb = "runas";
             p.Exited += P_Exited;
             p.Start();
+            deamon_status = true;
+
         }
 
         private void P_Exited(object sender, EventArgs e)
@@ -156,6 +250,8 @@ namespace vpn
             }
             else
             {
+                deamon_status = false;
+                button1.Enabled = true;
                 //normal exit
             }
         }
@@ -166,6 +262,7 @@ namespace vpn
             SetConsoleCtrlHandler(null, true); // disable Control+C handling for our app
             GenerateConsoleCtrlEvent(0, 0); // generate Control+C event
             p.WaitForExit(2000);
+            deamon_status = false;
             FreeConsole();
         }
 
@@ -179,7 +276,7 @@ namespace vpn
             {
                 button1.Text = "Stop";
                 button1.Enabled = true;
-                timer1.Stop();
+                //timer1.Stop();
             }
         }
 
@@ -193,6 +290,42 @@ namespace vpn
             catch {
             }
         }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            string tag, key,check;
+
+            if (rh.IsRegistryKeyExist(Registry.LocalMachine, sysvpn, tagname))
+            {
+                tag = rh.GetRegistryData(Registry.LocalMachine, sysvpn, tagname);
+                key = ah.DecryptByAES(tag, tagname);
+                if (key.Length != 0)
+                    textBox1.Text = key;
+            }
+            if (rh.IsRegistryKeyExist(Registry.LocalMachine, sysvpn, checkname))
+            {
+                check = rh.GetRegistryData(Registry.LocalMachine, sysvpn, checkname);
+                checkBox1.Checked = Convert.ToBoolean(check);
+                checkBox1.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
+            }
+            if (checkBox1.Checked && textBox1.Text.Length != 0)
+            {
+                auto_login = true;
+                vpn_start();
+            }
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            string check = Convert.ToString(checkBox1.Checked);
+            rh.SetRegistryData(Registry.LocalMachine, sysvpn, checkname, check);
+        }
+
+        private void textBox1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if(e.KeyCode == Keys.Enter)
+                vpn_start();
+        }
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -204,6 +337,7 @@ namespace vpn
         public byte[] pwd;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
         public byte[] token;
+        ushort reserved;
         UInt32 client_ip;
         public int rsp;//OK if it is same as type
     };
