@@ -35,6 +35,11 @@ namespace sysvpn
         delegate void my_delegate(int conn);
         my_delegate handle_conn;
 
+        Socket socket;
+        IPEndPoint ipep;
+        EndPoint Remote;
+
+
         [DllImport("kernel32.dll")]
         static extern bool GenerateConsoleCtrlEvent(int dwCtrlEvent, int dwProcessGroupId);
 
@@ -69,6 +74,12 @@ namespace sysvpn
             rh = new RegistryHelper();
             ah = new AesHelp();
             handle_conn = new my_delegate(conn_notify);
+
+            socket = new Socket(SocketType.Dgram, ProtocolType.Udp);
+
+            IPEndPoint ipep = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 55152);
+            Remote = (EndPoint)ipep;
+
             //vpn_cmd_t cmd = new vpn_cmd_t();
             InitializeComponent();
         }
@@ -124,38 +135,43 @@ namespace sysvpn
             }
             return bytes;
         }
-        private void threadConn()
+        private Byte[] prepare_data(int cmd_type, string data)
         {
-            Socket socket = new Socket(SocketType.Dgram, ProtocolType.Udp);
-
-            IPEndPoint ipep = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 55152);
-            EndPoint Remote = (EndPoint)ipep;
             byte[] buffer;
-            int conn = 0, retry = 10 ;
-
-            List<Socket> socketList = new List<Socket>();
-            socketList.Add(socket);
             vpn_cmd_t cmd = new vpn_cmd_t();
-            cmd.type = 1;
+            int len = textBox1.Text.Length>8? 8:textBox1.Text.Length;
+            cmd.type = cmd_type;
             cmd.rsp = 0;
             cmd.uid = new byte[10];
             cmd.pwd = new byte[20];
             cmd.token = new byte[8];
-            Array.Copy(strToByte(textBox1.Text), cmd.token, 8);
+            Array.Copy(strToByte(textBox1.Text), cmd.token, len);
+            buffer = ConverterHelper.StructToBytes<vpn_cmd_t>(cmd);
+            return buffer;
+        }
+        private void threadConn()
+        {
+
+            byte[] buffer;
+            int conn = 0, retry = 10 ;
+
+            List<Socket> socketList = new List<Socket>();
+
+            int cmd_type = 1;
             Thread.Sleep(100);
             while (conn != 3 && conn >= 0){
-                cmd.rsp = 0;
+
                 socketList.Clear();
                 socketList.Add(socket);
-                buffer = ConverterHelper.StructToBytes<vpn_cmd_t>(cmd);
-                if (retry > 0)
+                buffer = prepare_data(cmd_type, textBox1.Text);
+                if(retry > 0)
                     socket.SendTo(buffer, Remote);
 
                 Socket.Select(socketList, null, null, 1000000);
                 if(socketList.Count > 0)
                 {
                     ((Socket)socketList[0]).Receive(buffer);
-                    cmd = (vpn_cmd_t)ConverterHelper.BytesToStruct<vpn_cmd_t>(buffer);
+                    vpn_cmd_t cmd = (vpn_cmd_t)ConverterHelper.BytesToStruct<vpn_cmd_t>(buffer);
                     if(cmd.rsp != 0){
                         if(cmd.rsp == -1)
                         {
@@ -165,10 +181,9 @@ namespace sysvpn
                             conn = cmd.rsp;
                         if (cmd.type == 1 && cmd.rsp == 1)
                         {
-                            cmd.type = 3;
+                            cmd_type = 3;
                             Thread.Sleep(500);
                         }
-                        cmd.rsp = 0;
                     }
                 }
                 //    MessageBox.Show(cmd.type.ToString() + cmd.rsp.ToString());
@@ -216,7 +231,8 @@ namespace sysvpn
                 p.Close();
                 Thread.Sleep(100);
                 button1.Text = "Start";
-                button1.Enabled = true;
+                label_status.Text = "";
+               button1.Enabled = true;
             }
 
         }
@@ -239,7 +255,6 @@ namespace sysvpn
             p.Exited += P_Exited;
             p.Start();
             deamon_status = true;
-
         }
 
         private void P_Exited(object sender, EventArgs e)
@@ -258,6 +273,9 @@ namespace sysvpn
 
         void SendControlC(int pid)
         {
+            int cmd_type = 4;//exit
+            byte[] buffer = prepare_data(cmd_type, textBox1.Text);
+            socket.SendTo(buffer, Remote);
             AttachConsole(pid); // attach to process console
             SetConsoleCtrlHandler(null, true); // disable Control+C handling for our app
             GenerateConsoleCtrlEvent(0, 0); // generate Control+C event
@@ -284,7 +302,7 @@ namespace sysvpn
         {
             try
             {
-                if (button1.Text.StartsWith("Stop"))//already start
+                //if (button1.Text.StartsWith("Stop"))//already start
                     SendControlC(p.Id);
             }
             catch {
