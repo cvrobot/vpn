@@ -6,7 +6,7 @@ REM all key value pairs in ShadowVPN config file will be passed to this script
 REM as environment variables, except password
  
 REM user-defined variables
-SET remote_tun_ip=10.7.0.1
+REM SET remote_tun_ip=10.7.0.0
       ::#server virtual net IP
 SET dns_server=8.8.8.8
           ::#set dns
@@ -19,6 +19,7 @@ route add %server% %orig_gw% metric 5 > NUL
  
 REM configure IP address and MTU of VPN interface
 REM netsh interface ip set interface %orig_intf% ignoredefaultroutes=enabled > NUL
+REM netsh interface ip set address name="%intf%" static %tunip% 255.255.255.0 > NUL
 netsh interface ip set address name="%intf%" static %tunip% 255.255.255.0 %remote_tun_ip% gwmetric=1 > NUL
 REM netsh interface ip set interface "%intf%" metric=1 > NUL
 netsh interface ipv4 set subinterface "%intf%" mtu=%mtu% > NUL
@@ -31,7 +32,7 @@ if %ERRORLEVEL%==0 (
     route add 128.0.0.0 mask 128.0.0.0 %remote_tun_ip% metric 1 > NUL
     route add 0.0.0.0 mask 128.0.0.0 %remote_tun_ip% metric 1 > NUL
 ) else (
-    netsh interface ipv4 add route 128.0.0.0/1 "%intf%" %remote_tun_ip% metric=1 > NUL
+REM    netsh interface ipv4 add route 128.0.0.0/1 "%intf%" %remote_tun_ip% metric=1 > NUL
 REM    netsh interface ipv4 add route 0.0.0.0/1 "%intf%" %remote_tun_ip% metric=1 > NUL
 )
 ECHO default route changed to %remote_tun_ip%
