@@ -411,6 +411,24 @@ namespace sysvpn
 
         }
 
+        private void notifyIcon1_DoubleClick(object sender, EventArgs e)
+        {
+            if (this.Visible)
+            {
+                this.Hide();
+            }
+            else
+            {
+                this.Show();
+                this.WindowState = FormWindowState.Normal;
+            }
+        }
+
+        private void Form1_Resize(object sender, EventArgs e)
+        {
+            if (this.WindowState == FormWindowState.Minimized)
+                this.Hide();
+        }
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
