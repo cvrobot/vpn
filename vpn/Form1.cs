@@ -34,7 +34,7 @@ namespace sysvpn
         const int WM_CHAR = 0x0102;
         delegate void my_delegate(int conn);
         my_delegate handle_conn;
-
+        bool need_exit = false;
         Socket socket;
         IPEndPoint ipep;
         EndPoint Remote;
@@ -67,7 +67,14 @@ namespace sysvpn
         [DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
         static extern bool FreeConsole();
 
-
+        void stop_deamon()
+        {
+            Process[] p = Process.GetProcessesByName("ShadowVPN");
+            foreach (Process ps in p)
+            {
+                SendControlC(ps);
+            }
+}
         public Form1()
         {
             p = new Process();
@@ -79,7 +86,7 @@ namespace sysvpn
 
             IPEndPoint ipep = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 55152);
             Remote = (EndPoint)ipep;
-
+            stop_deamon();
             //vpn_cmd_t cmd = new vpn_cmd_t();
             InitializeComponent();
         }
@@ -139,13 +146,16 @@ namespace sysvpn
         {
             byte[] buffer;
             vpn_cmd_t cmd = new vpn_cmd_t();
-            int len = (textBox1.Text.Length/2)>8? 8:textBox1.Text.Length/2;
+            int len;
             cmd.type = cmd_type;
             cmd.rsp = 0;
             cmd.uid = new byte[10];
             cmd.pwd = new byte[20];
             cmd.token = new byte[8];
-            Array.Copy(strToByte(textBox1.Text), cmd.token, len);
+            if (data != null) { 
+                len = (data.Length / 2) > 8 ? 8 : textBox1.Text.Length / 2;
+                Array.Copy(strToByte(textBox1.Text), cmd.token, len);
+            }
             buffer = ConverterHelper.StructToBytes<vpn_cmd_t>(cmd);
             return buffer;
         }
@@ -186,13 +196,13 @@ namespace sysvpn
                         }
                     }
                 }
-                //    MessageBox.Show(cmd.type.ToString() + cmd.rsp.ToString());
+
                 if(conn != 0)//if (conn == 3 || conn == -2)
                 {
                     this.Invoke(handle_conn, conn);
-                    //button1.Text = "Stop";
-                    //button1.Enabled = true;
                 }
+                if (need_exit)
+                    break;
             }
         }
 
@@ -227,7 +237,7 @@ namespace sysvpn
             else
             {
                 button1.Enabled = false;
-                SendControlC(p.Id);
+                SendControlC(p);
                 p.Close();
                 Thread.Sleep(100);
                 button1.Text = "Start";
@@ -271,14 +281,14 @@ namespace sysvpn
             }
         }
 
-        void SendControlC(int pid = 0)
+        void SendControlC(Process p = null)
         {
             int cmd_type = 4;//exit
-            byte[] buffer = prepare_data(cmd_type, textBox1.Text);
+            byte[] buffer = prepare_data(cmd_type, null);
             socket.SendTo(buffer, Remote);
-            if (pid != 0)
+            if (p != null)
             {
-                AttachConsole(pid); // attach to process console
+                AttachConsole(p.Id); // attach to process console
                 SetConsoleCtrlHandler(null, true); // disable Control+C handling for our app
                 GenerateConsoleCtrlEvent(0, 0); // generate Control+C event
                 p.WaitForExit(2000);
@@ -305,8 +315,9 @@ namespace sysvpn
         {
             try
             {
+                need_exit = true;
                 if (button1.Text.StartsWith("Stop"))//already start
-                    SendControlC(p.Id);
+                    SendControlC(p);
                 else
                     SendControlC();
             }
@@ -399,8 +410,9 @@ namespace sysvpn
                 button1.Enabled = false;
 
         }
+
     }
-  
+
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct vpn_cmd_t{
         public int type;//1:login,2:logout,3:exit
