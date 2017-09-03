@@ -74,7 +74,23 @@ namespace sysvpn
             {
                 SendControlC(ps);
             }
-}
+        }
+
+        Boolean wait_deamon_run(int retry, int ms)
+        {
+            Process[] p = null;
+            while (retry > 0)
+            {
+                p = Process.GetProcessesByName("ShadowVPN");
+                if (p != null)
+                {
+                    break;
+                }
+                Thread.Sleep(ms);
+                retry--;
+            }
+            return retry > 0 ? true : false;
+        }
         public Form1()
         {
             p = new Process();
@@ -82,7 +98,7 @@ namespace sysvpn
             ah = new AesHelp();
             handle_conn = new my_delegate(conn_notify);
 
-            socket = new Socket(SocketType.Dgram, ProtocolType.Udp);
+            socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 
             IPEndPoint ipep = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 55152);
             Remote = (EndPoint)ipep;
@@ -264,6 +280,7 @@ namespace sysvpn
             p.StartInfo.Verb = "runas";
             p.Exited += P_Exited;
             p.Start();
+            wait_deamon_run(10,100);
             deamon_status = true;
         }
 
