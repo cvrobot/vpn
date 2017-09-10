@@ -111,31 +111,31 @@ namespace sysvpn
         {
             switch (conn) {
                 case -1://request fail
-                    label_status.Text = "request fail";
+                    label_status.Text = "Request fail";
                     break;
                 case -2://token fail
-                    label_status.Text = "token not correct";
+                    label_status.Text = "Token not correct";
                     break;
                 case -3://check conn fail
-                    label_status.Text = "connect fail";
+                    label_status.Text = "Connect fail";
                     break;
                 case -4://error request
-                    label_status.Text = "request type error";
+                    label_status.Text = "Request type error";
                     break;
                 case -5://time out
-                    label_status.Text = "request time out";
+                    label_status.Text = "Login time out";
                     break;
                 case 1://login successfull
-                    label_status.Text = "login successfull";
+                    label_status.Text = "Login successfull";
                     break;
                 case 2://logout successfull
-                    label_status.Text = "logout successfull";
+                    label_status.Text = "Logout successfull";
                     break;
                 case 3://connect successfull
-                    label_status.Text = "connect successfull";
+                    label_status.Text = "Connect successfull";
                     break;
                 case 4://exit successfull
-                    label_status.Text = "exit successfull";
+                    label_status.Text = "Exit successfull";
                     break;
             }
             if (conn == 3 )
@@ -143,8 +143,10 @@ namespace sysvpn
                 button1.Text = "Stop";
                 button1.Enabled = true;
                 save_token(conn);
+                timer1.Stop();
             }
-            else if (conn == 3 || conn < 0) {
+            else if (conn < 0) {
+                SendControlC();
                 button1.Enabled = true;
             }
         }
@@ -193,10 +195,19 @@ namespace sysvpn
                 if(retry > 0)
                     socket.SendTo(buffer, Remote);
 
-                Socket.Select(socketList, null, null, 1000000);
+                Socket.Select(socketList, null, null, 500000);
                 if(socketList.Count > 0)
                 {
-                    ((Socket)socketList[0]).Receive(buffer);
+                    try
+                    {
+                        ((Socket)socketList[0]).Receive(buffer);
+                    }
+                    catch
+                    {
+                        //break;
+                        Thread.Sleep(500);
+                        continue;
+                    }
                     vpn_cmd_t cmd = (vpn_cmd_t)ConverterHelper.BytesToStruct<vpn_cmd_t>(buffer);
                     if(cmd.rsp != 0){
                         if(cmd.rsp == -1)
@@ -215,7 +226,14 @@ namespace sysvpn
 
                 if(conn != 0)//if (conn == 3 || conn == -2)
                 {
-                    this.Invoke(handle_conn, conn);
+                    try
+                    {
+                        this.Invoke(handle_conn, conn);
+                    }
+                    catch
+                    {
+                        break;
+                    }
                 }
                 if (need_exit)
                     break;
@@ -242,13 +260,13 @@ namespace sysvpn
                     startProcess();
                 }
 
-                //timer1.Start();
                 if (th == null || th.IsAlive == false)
                 {
                     th = new Thread(new ThreadStart(threadConn));
                     th.Start();
+                    timer1.Interval = 15000;
+                    timer1.Start();
                 }
-
             }
             else
             {
@@ -303,29 +321,15 @@ namespace sysvpn
             int cmd_type = 4;//exit
             byte[] buffer = prepare_data(cmd_type, null);
             socket.SendTo(buffer, Remote);
-            if (p != null)
-            {
-                AttachConsole(p.Id); // attach to process console
-                SetConsoleCtrlHandler(null, true); // disable Control+C handling for our app
-                GenerateConsoleCtrlEvent(0, 0); // generate Control+C event
-                p.WaitForExit(2000);
-                deamon_status = false;
-                FreeConsole();
-            }
+            deamon_status = false;
         }
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            if(p.HasExited)
-            {
-                //startProcess();
-            }
-            else
-            {
-                button1.Text = "Stop";
-                button1.Enabled = true;
-                //timer1.Stop();
-            }
+            conn_notify(-5);
+            button1.Text = "Start";
+            button1.Enabled = true;
+            timer1.Stop();
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
