@@ -264,7 +264,7 @@ namespace sysvpn
                 {
                     th = new Thread(new ThreadStart(threadConn));
                     th.Start();
-                    timer1.Interval = 15000;
+                    timer1.Interval = 60000;
                     timer1.Start();
                 }
             }
