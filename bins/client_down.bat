@@ -18,8 +18,8 @@ netsh interface ip set address name="%intf%" dhcp > NUL
  
 REM revert routing table
 ECHO reverting default route
-REM route delete 0.0.0.0 mask 128.0.0.0 %remote_tun_ip% > NUL
-REM route delete 128.0.0.0 mask 128.0.0.0 %remote_tun_ip% > NUL
+ route delete 0.0.0.0 mask 128.0.0.0 %remote_tun_ip% > NUL
+ route delete 128.0.0.0 mask 128.0.0.0 %remote_tun_ip% > NUL
 route delete %server% > NUL
  
 REM revert dns server
