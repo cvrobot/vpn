@@ -181,7 +181,7 @@ namespace sysvpn
         {
 
             byte[] buffer;
-            int conn = 0, retry = 10 ;
+            int conn = 0;
 
             List<Socket> socketList = new List<Socket>();
 
@@ -192,8 +192,8 @@ namespace sysvpn
                 socketList.Clear();
                 socketList.Add(socket);
                 buffer = prepare_data(cmd_type, textBox1.Text);
-                if(retry > 0)
-                    socket.SendTo(buffer, Remote);
+
+                socket.SendTo(buffer, Remote);
 
                 Socket.Select(socketList, null, null, 500000);
                 if(socketList.Count > 0)
@@ -212,7 +212,6 @@ namespace sysvpn
                     if(cmd.rsp != 0){
                         if(cmd.rsp == -1)
                         {
-                            retry--;
                             Thread.Sleep(500);
                         }else
                             conn = cmd.rsp;
