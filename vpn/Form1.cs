@@ -147,6 +147,7 @@ namespace sysvpn
             }
             else if (conn < 0) {
                 SendControlC();
+
                 button1.Enabled = true;
             }
         }
@@ -187,6 +188,7 @@ namespace sysvpn
 
             int cmd_type = 1;
             Thread.Sleep(100);
+            need_exit = false;
             while (conn != 3 && conn >= 0){
 
                 socketList.Clear();
@@ -326,6 +328,7 @@ namespace sysvpn
         private void timer1_Tick(object sender, EventArgs e)
         {
             conn_notify(-5);
+            need_exit = true;
             button1.Text = "Start";
             button1.Enabled = true;
             timer1.Stop();
