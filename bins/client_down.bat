@@ -24,6 +24,6 @@ route delete %server% > NUL
  
 REM revert dns server
 netsh interface ip set dns name="%intf%" source=dhcp > NUL
-REM netsh interface ip set dns name="%orig_intf%" source=dhcp > NUL
+netsh interface ip set dns name="%orig_intf_id%" source=dhcp > NUL
  
 ECHO %0 done

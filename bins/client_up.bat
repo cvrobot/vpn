@@ -40,6 +40,6 @@ ECHO default route changed to %remote_tun_ip%
  
 REM change dns server
 netsh interface ip set dns name="%intf%" static %dns_server% > NUL
-REM netsh interface ip set dns name="%orig_intf%" static %dns_server% > NUL
+netsh interface ip set dns name="%orig_intf_id%" static %dns_server% > NUL
  
 ECHO %0 done
