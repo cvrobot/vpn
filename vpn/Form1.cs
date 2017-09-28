@@ -254,7 +254,8 @@ namespace sysvpn
         {
             if (button1.Text.StartsWith("Start"))
             {
-                //button1.Text = "Stop";
+                label_status.Text = "";
+                textBox1.Enabled = false;
                 button1.Enabled = false;
                 if (deamon_status == false)
                 {
@@ -278,6 +279,7 @@ namespace sysvpn
                 button1.Text = "Start";
                 label_status.Text = "";
                button1.Enabled = true;
+                textBox1.Enabled = true;
             }
 
         }
@@ -295,7 +297,7 @@ namespace sysvpn
             p.StartInfo.RedirectStandardOutput = true;
             p.StartInfo.RedirectStandardError = true;
             p.StartInfo.CreateNoWindow = true;
-            p.StartInfo.Arguments = "-c client.conf -v";
+            p.StartInfo.Arguments = "-c client.conf -v -l";
             p.StartInfo.Verb = "runas";
             p.Exited += P_Exited;
             p.Start();
@@ -309,10 +311,11 @@ namespace sysvpn
             {
                 startProcess();//restart again
             }
-            else
+            else//alread start
             {
                 deamon_status = false;
                 button1.Enabled = true;
+                textBox1.Enabled = true;
                 //normal exit
             }
         }
