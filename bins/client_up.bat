@@ -19,23 +19,23 @@ route change 0.0.0.0/0 %orig_gw%
 route add %server% %orig_gw%
 
 REM configure IP address and MTU of VPN interface
-REM netsh interface ip set interface %orig_intf% ignoredefaultroutes=enabled > NUL
-netsh interface ip set address name="%intf%" static %tunip% 255.255.255.0 > NUL
-REM netsh interface ipv4 set address name="%intf%" static %tunip% 255.255.255.0 %remote_tun_ip% gwmetric=10000 > NUL
+REM netsh interface ip set interface %orig_intf_id% ignoredefaultroutes=enabled > NUL
+REM netsh interface ip set address name="%intf%" static %tunip% 255.255.255.0 > NUL
+netsh interface ipv4 set address name="%intf%" static %tunip% 255.255.255.0 %remote_tun_ip% gwmetric=10000 > NUL
 REM netsh interface ip set interface "%intf%" metric=1 > NUL
 netsh interface ipv4 set subinterface "%intf%" mtu=%mtu% > NUL
  
 REM change routing table
 ECHO changing default route
 REM checking if winxp
-REM ver | find "5.1" > NUL
-REM if %ERRORLEVEL%==0 (
+ver | find "5.1" > NUL
+if %ERRORLEVEL%==0 (
     route add 128.0.0.0 mask 128.0.0.0 %remote_tun_ip% metric 1 IF %intf_id% > NUL
     route add 0.0.0.0 mask 128.0.0.0 %remote_tun_ip% metric 1  IF %intf_id% > NUL
-REM ) else (
-REM     netsh interface ipv4 add route 128.0.0.0/1 "%intf%" %remote_tun_ip% metric=0 > NUL
-REM     netsh interface ipv4 add route 0.0.0.0/1 "%intf%" %remote_tun_ip% metric=0 > NUL
-REM )
+) else (
+    netsh interface ipv4 add route 128.0.0.0/1 "%intf%" %remote_tun_ip% metric=0 > NUL
+    netsh interface ipv4 add route 0.0.0.0/1 "%intf%" %remote_tun_ip% metric=0 > NUL
+)
 ECHO default route changed to %remote_tun_ip%
  
 REM change dns server

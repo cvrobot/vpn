@@ -12,10 +12,9 @@ REM SET orig_intf="WLAN 2"
              ::#as up
  
 REM revert ip settings
-REM netsh interface ip set interface %orig_intf% ignoredefaultroutes=disabled > NUL
+REM netsh interface ip set interface %orig_intf_id% ignoredefaultroutes=disabled > NUL
 netsh interface ip set address name="%intf%" dhcp > NUL
 
- 
 REM revert routing table
 ECHO reverting default route
  route delete 0.0.0.0 mask 128.0.0.0 %remote_tun_ip% > NUL
